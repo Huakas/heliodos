@@ -27,19 +27,11 @@
             app:useSimpleSummaryProvider="true" />
     </androidx.preference.PreferenceCategory>
 
-    <androidx.preference.PreferenceCategory android:title="@string/pref_category_time">
-        <androidx.preference.SwitchPreferenceCompat
-            android:defaultValue="true"
-            android:key="use_current_time"
-            android:title="@string/pref_use_current_time" />
-
-        <androidx.preference.Preference
-            android:key="manual_date"
-            android:title="@string/pref_manual_date" />
-
-        <androidx.preference.Preference
-            android:key="manual_time"
-            android:title="@string/pref_manual_time" />
-    </androidx.preference.PreferenceCategory>
+    <PreferenceCategory android:title="@string/pref_category_general">
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="show_solstices"
+            android:title="@string/pref_show_solstices" />
+    </PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>

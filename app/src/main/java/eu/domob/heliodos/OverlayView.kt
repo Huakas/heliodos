@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
+import androidx.preference.PreferenceManager
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -92,10 +93,14 @@ class OverlayView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun setPositionAndTime(latitude: Double, longitude: Double, altitude: Double, time: Long) {
+    fun updatePosition(latitude: Double, longitude: Double, altitude: Double) {
         sunPosition = SunPosition(latitude, longitude, altitude)
-        referenceTime = time
         observerLatitude = latitude
+        invalidate()
+    }
+
+    fun updateTime(time: Long) {
+        referenceTime = time
         invalidate()
     }
 
@@ -155,23 +160,28 @@ class OverlayView @JvmOverloads constructor(
             return
         }
 
-        val solstices = sunPosition?.getSolstices(referenceTime)
-        if (solstices != null) {
-            val juneColor: Int
-            val decColor: Int
-            if (observerLatitude >= 0) {
-                juneColor = Color.BLUE
-                decColor = Color.RED
-            } else {
-                juneColor = Color.RED
-                decColor = Color.BLUE
-            }
-            drawSunPath(canvas, solstices.june, 10f, juneColor)
-            drawSunPath(canvas, solstices.december, 10f, decColor)
-        }
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val showSolstices = prefs.getBoolean("show_solstices", false)
 
-        sunPosition?.getMarchEquinox(referenceTime)?.let {
-            drawSunPath(canvas, it, 10f, Color.GREEN)
+        if (showSolstices) {
+            val solstices = sunPosition?.getSolstices(referenceTime)
+            if (solstices != null) {
+                val juneColor: Int
+                val decColor: Int
+                if (observerLatitude >= 0) {
+                    juneColor = Color.BLUE
+                    decColor = Color.RED
+                } else {
+                    juneColor = Color.RED
+                    decColor = Color.BLUE
+                }
+                drawSunPath(canvas, solstices.june, 10f, juneColor)
+                drawSunPath(canvas, solstices.december, 10f, decColor)
+            }
+
+            sunPosition?.getMarchEquinox(referenceTime)?.let {
+                drawSunPath(canvas, it, 10f, Color.GREEN)
+            }
         }
 
         drawSunPath(canvas, referenceTime, 3f, Color.YELLOW)

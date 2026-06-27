@@ -10,6 +10,8 @@ import android.view.ScaleGestureDetector
 import android.view.Surface
 import android.view.TextureView
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
 
 class CameraFeedView @JvmOverloads constructor(
     context: Context,
@@ -153,6 +155,29 @@ class CameraFeedView @JvmOverloads constructor(
         try {
             val cameraId = sortedCameraIds[index]
             val characteristics = manager.getCameraCharacteristics(cameraId)
+
+            val sensorSizePx = characteristics.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE)
+                ?: android.util.Size(4000, 3000)
+            val sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 90
+            val isRotated = sensorOrientation == 90 || sensorOrientation == 270
+            val effectiveSensorWidth = if (isRotated) sensorSizePx.height else sensorSizePx.width
+            val effectiveSensorHeight = if (isRotated) sensorSizePx.width else sensorSizePx.height
+
+            fun gcd(a: Int, b: Int): Int {
+                return if (b == 0) a else gcd(b, a % b)
+            }
+
+            val sensorGcd = gcd(effectiveSensorWidth, effectiveSensorHeight)
+
+            val constraintLayout = this.parent as ConstraintLayout
+            val constraintSet = ConstraintSet()
+            constraintSet.clone(constraintLayout)
+            val sensorRatio = "${effectiveSensorWidth/sensorGcd}:${effectiveSensorHeight/sensorGcd}"
+
+            constraintSet.setDimensionRatio(R.id.cameraFeedView, sensorRatio)
+            constraintSet.setDimensionRatio(R.id.overlayView, sensorRatio)
+            constraintSet.applyTo(constraintLayout)
+
             projection = CameraProjection(characteristics)
 
             manager.openCamera(cameraId, object : CameraDevice.StateCallback() {

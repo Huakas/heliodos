@@ -1,6 +1,9 @@
 package eu.domob.heliodos
 
 import android.Manifest
+import android.animation.LayoutTransition
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -11,22 +14,40 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import android.content.Intent
 import android.view.LayoutInflater
 import android.widget.TextView
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.text.format.DateFormat
+import android.view.View
+import android.widget.Button
+import android.widget.LinearLayout
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.preference.PreferenceManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.slider.Slider
+import java.util.Calendar
 
 class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener {
     private lateinit var cameraFeedView: CameraFeedView
     private lateinit var overlayView: OverlayView
+    private lateinit var timeSlider: Slider
+    private lateinit var dateTextView: Button
+    private lateinit var timeTextView: Button
+    private lateinit var jumpToNowButton: Button
     private lateinit var sensorManager: SensorManager
     private lateinit var locationManager: LocationManager
     private var rotationSensor: Sensor? = null
+    private var isTimeUpdatesStopped = false
+    private var time = Calendar.getInstance()
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 1
@@ -35,11 +56,58 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById<ConstraintLayout>(R.id.root)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
 
         cameraFeedView = findViewById(R.id.cameraFeedView)
         overlayView = findViewById(R.id.overlayView)
         overlayView.cameraFeedView = cameraFeedView
+        timeSlider = findViewById(R.id.timeSlider)
+        timeSlider.value = timeToSlider()
+        timeSlider.addOnChangeListener { _, f, _ ->
+            updateOverlayTimeFromSlider(f)
+        }
+
+        findViewById<Button>(R.id.backButton).setOnClickListener {
+            isTimeUpdatesStopped = true
+            showJumpToNowButton()
+            time.timeInMillis -= 86400000
+            updateTime()
+        }
+        findViewById<Button>(R.id.forwardButton).setOnClickListener {
+            isTimeUpdatesStopped = true
+            showJumpToNowButton()
+            time.timeInMillis += 86400000
+            updateTime()
+        }
+        jumpToNowButton = findViewById(R.id.jumpToNowButton)
+        jumpToNowButton.setOnClickListener {
+            time.timeInMillis = System.currentTimeMillis()
+            timeSlider.value = timeToSlider()
+            isTimeUpdatesStopped = false
+            startTimeUpdates()
+            jumpToNowButton.visibility = View.GONE
+        }
+
+        dateTextView = findViewById(R.id.dateTextView)
+        timeTextView = findViewById(R.id.timeTextView)
+
+        dateTextView.setOnClickListener {
+            showDatePicker()
+        }
+        timeTextView.setOnClickListener {
+            showTimePicker()
+        }
+
+        findViewById<Button>(R.id.settingsButton).setOnClickListener {
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
+        }
 
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
@@ -48,6 +116,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         cameraFeedView.onSingleTap = {
             showAboutDialog()
         }
+    }
+
+    private fun timeToSlider(): Float {
+        var timeOfDay = time.get(Calendar.HOUR_OF_DAY) * 3600
+        timeOfDay += time.get(Calendar.MINUTE) * 60
+        timeOfDay += time.get(Calendar.SECOND)
+        return timeOfDay / 86400f
     }
 
     private fun showAboutDialog() {
@@ -62,13 +137,50 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             startActivity(intent)
         }
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setView(view)
             .setPositiveButton(android.R.string.ok, null)
             .setNeutralButton(R.string.action_settings) { _, _ ->
                 startActivity(Intent(this, SettingsActivity::class.java))
             }
             .show()
+    }
+
+    private fun showDatePicker() {
+        val year = time.get(Calendar.YEAR)
+        val month = time.get(Calendar.MONTH)
+        val day = time.get(Calendar.DAY_OF_MONTH)
+
+        DatePickerDialog(this, { _, y, m, d ->
+            isTimeUpdatesStopped = true
+            showJumpToNowButton()
+            time.set(Calendar.YEAR, y)
+            time.set(Calendar.MONTH, m)
+            time.set(Calendar.DAY_OF_MONTH, d)
+            updateTime()
+        }, year, month, day).show()
+    }
+
+    private fun showTimePicker() {
+        val hour = time.get(Calendar.HOUR_OF_DAY)
+        val minute = time.get(Calendar.MINUTE)
+
+        TimePickerDialog(this, { _, h, m ->
+            isTimeUpdatesStopped = true
+            showJumpToNowButton()
+            time.set(Calendar.HOUR_OF_DAY, h)
+            time.set(Calendar.MINUTE, m)
+            updateTime()
+        }, hour, minute, DateFormat.is24HourFormat(this)).show()
+    }
+
+    private fun showJumpToNowButton() {
+        val layout = findViewById<LinearLayout>(R.id.textContainer)
+
+        layout.layoutTransition = LayoutTransition().apply {
+            enableTransitionType(LayoutTransition.CHANGING)
+        }
+        jumpToNowButton.visibility = View.VISIBLE
     }
 
     private fun checkAndRequestPermissions() {
@@ -83,6 +195,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
 
         val missingPermissions = permissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.indexOf(Manifest.permission.CAMERA) != -1) {
+            cameraFeedView.visibility = View.GONE
         }
 
         if (missingPermissions.isNotEmpty()) {
@@ -110,10 +226,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             }
         } else {
             locationManager.removeUpdates(this)
-            val lat = prefs.getString("manual_latitude", "51.5")?.toDoubleOrNull() ?: 51.5
-            val lon = prefs.getString("manual_longitude", "0")?.toDoubleOrNull() ?: 0.0
-            val alt = prefs.getString("manual_altitude", "0")?.toDoubleOrNull() ?: 0.0
-            updateOverlay(lat, lon, alt)
+            val latitude = prefs.getString("manual_latitude", "51.5")?.toDoubleOrNull() ?: 51.5
+            val longitude = prefs.getString("manual_longitude", "0")?.toDoubleOrNull() ?: 0.0
+            val altitude = prefs.getString("manual_altitude", "0")?.toDoubleOrNull() ?: 0.0
+            overlayView.updatePosition(latitude, longitude, altitude)
         }
     }
 
@@ -140,15 +256,34 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         }
     }
 
-    private fun updateOverlay(latitude: Double, longitude: Double, altitude: Double) {
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-        val useCurrentTime = prefs.getBoolean("use_current_time", true)
-        val time = if (useCurrentTime) {
-            System.currentTimeMillis()
-        } else {
-            prefs.getLong("manual_timestamp", System.currentTimeMillis())
-        }
-        overlayView.setPositionAndTime(latitude, longitude, altitude, time)
+    private fun startTimeUpdates() {
+        if (isTimeUpdatesStopped) return
+
+        val currentTime = System.currentTimeMillis()
+
+        time.timeInMillis = currentTime
+        updateTime()
+        Handler(Looper.getMainLooper()).postDelayed({ startTimeUpdates() }, 1000L)
+    }
+
+    private fun updateTime() {
+        overlayView.updateTime(time.timeInMillis)
+        dateTextView.text = "Date: ${time.get(Calendar.DAY_OF_MONTH)}.${time.get(Calendar.MONTH) + 1}.${time.get(Calendar.YEAR)}"
+        timeTextView.text = "Time: ${String.format("%02d", time.get(Calendar.HOUR_OF_DAY))}:${String.format("%02d", time.get(Calendar.MINUTE))}"
+    }
+
+    private fun updateOverlayTimeFromSlider(sliderPosition: Float) {
+        isTimeUpdatesStopped = true
+        showJumpToNowButton()
+        var secondsLeftover = sliderPosition * 86399
+        val hours = (secondsLeftover / 3600).toInt()
+        secondsLeftover -= hours * 3600
+        val minutes = (secondsLeftover / 60).toInt()
+        val seconds = (secondsLeftover - (minutes * 60)).toInt()
+        time.set(Calendar.HOUR_OF_DAY, hours)
+        time.set(Calendar.MINUTE, minutes)
+        time.set(Calendar.SECOND, seconds)
+        updateTime()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
@@ -197,6 +332,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         }
         
         checkAndRequestPermissions()
+        startTimeUpdates()
     }
 
     override fun onSensorChanged(event: SensorEvent) {
@@ -211,7 +347,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     }
 
     override fun onLocationChanged(location: Location) {
-        updateOverlay(location.latitude, location.longitude, location.altitude)
+        overlayView.updatePosition(location.latitude, location.longitude, location.altitude)
     }
 
     override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}

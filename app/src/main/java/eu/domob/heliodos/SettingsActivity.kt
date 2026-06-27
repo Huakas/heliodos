@@ -7,7 +7,10 @@ import android.os.Bundle
 import android.text.InputType
 import android.text.format.DateFormat
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -18,7 +21,13 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_settings)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.settings)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
         if (savedInstanceState == null) {
             supportFragmentManager
                 .beginTransaction()
@@ -38,18 +47,7 @@ class SettingsActivity : AppCompatActivity() {
             setupCoordinateInput("manual_longitude", -180.0, 180.0, R.string.error_invalid_longitude)
             setupNumberInput("manual_altitude")
 
-            findPreference<Preference>("manual_date")?.setOnPreferenceClickListener {
-                showDatePicker()
-                true
-            }
-
-            findPreference<Preference>("manual_time")?.setOnPreferenceClickListener {
-                showTimePicker()
-                true
-            }
-
             updateEnabledState()
-            updateDateTimeSummaries()
         }
 
         override fun onResume() {
@@ -97,61 +95,6 @@ class SettingsActivity : AppCompatActivity() {
             findPreference<EditTextPreference>("manual_latitude")?.isEnabled = !useLocation
             findPreference<EditTextPreference>("manual_longitude")?.isEnabled = !useLocation
             findPreference<EditTextPreference>("manual_altitude")?.isEnabled = !useLocation
-
-            val useCurrentTime = findPreference<SwitchPreferenceCompat>("use_current_time")?.isChecked == true
-            findPreference<Preference>("manual_date")?.isEnabled = !useCurrentTime
-            findPreference<Preference>("manual_time")?.isEnabled = !useCurrentTime
-        }
-
-        private fun showDatePicker() {
-            val calendar = getManualCalendar()
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH)
-            val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-            DatePickerDialog(requireContext(), { _, y, m, d ->
-                val newCalendar = getManualCalendar()
-                newCalendar.set(Calendar.YEAR, y)
-                newCalendar.set(Calendar.MONTH, m)
-                newCalendar.set(Calendar.DAY_OF_MONTH, d)
-                saveManualTime(newCalendar.timeInMillis)
-                updateDateTimeSummaries()
-            }, year, month, day).show()
-        }
-
-        private fun showTimePicker() {
-            val calendar = getManualCalendar()
-            val hour = calendar.get(Calendar.HOUR_OF_DAY)
-            val minute = calendar.get(Calendar.MINUTE)
-
-            TimePickerDialog(requireContext(), { _, h, m ->
-                val newCalendar = getManualCalendar()
-                newCalendar.set(Calendar.HOUR_OF_DAY, h)
-                newCalendar.set(Calendar.MINUTE, m)
-                saveManualTime(newCalendar.timeInMillis)
-                updateDateTimeSummaries()
-            }, hour, minute, DateFormat.is24HourFormat(requireContext())).show()
-        }
-
-        private fun getManualCalendar(): Calendar {
-            val prefs = preferenceManager.sharedPreferences
-            val time = prefs?.getLong("manual_timestamp", System.currentTimeMillis()) ?: System.currentTimeMillis()
-            val calendar = Calendar.getInstance()
-            calendar.timeInMillis = time
-            return calendar
-        }
-
-        private fun saveManualTime(time: Long) {
-            preferenceManager.sharedPreferences?.edit()?.putLong("manual_timestamp", time)?.apply()
-        }
-
-        private fun updateDateTimeSummaries() {
-            val calendar = getManualCalendar()
-            val dateParams = java.text.DateFormat.getDateInstance(java.text.DateFormat.SHORT)
-            val timeParams = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
-
-            findPreference<Preference>("manual_date")?.summary = dateParams.format(calendar.time)
-            findPreference<Preference>("manual_time")?.summary = timeParams.format(calendar.time)
         }
     }
 }

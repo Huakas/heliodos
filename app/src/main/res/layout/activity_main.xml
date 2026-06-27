@@ -1,16 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <eu.domob.heliodos.CameraFeedView
         android:id="@+id/cameraFeedView"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/textContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        app:layout_constraintDimensionRatio="1:1"/>
 
     <eu.domob.heliodos.OverlayView
         android:id="@+id/overlayView"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/textContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        app:layout_constraintDimensionRatio="1:1"/>
 
-</FrameLayout>
+    <LinearLayout
+        android:id="@+id/textContainer"
+        app:layout_constraintBottom_toTopOf="@id/buttonContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:layout_margin="16dp">
+
+        <Button
+            android:id="@+id/dateTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Date: 27.06.2026"/>
+
+        <Space
+            android:layout_width="16dp"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/timeTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Time: 15:00"/>
+
+        <Button
+            android:id="@+id/jumpToNowButton"
+            android:visibility="gone"
+            android:layout_weight="0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            app:icon="@drawable/outline_clock_arrow_down_24"
+            app:iconPadding="0dp"
+            style="@style/Widget.Material3.Button.IconButton.Filled" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/buttonContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="16dp">
+
+        <Button
+            android:id="@+id/backButton"
+            android:layout_weight="0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/outline_arrow_left_24"
+            app:iconPadding="0dp"
+            style="@style/Widget.Material3.Button.IconButton.Filled" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/timeSlider"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:labelBehavior="gone"/>
+
+        <Button
+            android:id="@+id/forwardButton"
+            android:layout_weight="0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/outline_arrow_right_24"
+            app:iconPadding="0dp"
+            style="@style/Widget.Material3.Button.IconButton.Filled" />
+
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/settingsButton"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        app:icon="@drawable/outline_construction_24"
+        app:iconSize="32dp"
+        app:iconPadding="0dp"
+        style="@style/Widget.Material3.Button.IconButton" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
