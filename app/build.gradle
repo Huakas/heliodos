@@ -69,4 +69,5 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'io.github.cosinekitty:astronomy'
+    implementation 'com.github.martin-stone:hsv-alpha-color-picker-android:3.1.0'
 }
