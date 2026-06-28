@@ -73,17 +73,33 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             updateOverlayTimeFromSlider(f)
         }
 
-        findViewById<Button>(R.id.backButton).setOnClickListener {
+        val backButton = findViewById<Button>(R.id.backButton)
+        val forwardButton = findViewById<Button>(R.id.forwardButton)
+        backButton.setOnClickListener {
             isTimeUpdatesStopped = true
             showJumpToNowButton()
             time.timeInMillis -= 86400000
             updateTime()
         }
-        findViewById<Button>(R.id.forwardButton).setOnClickListener {
+        forwardButton.setOnClickListener {
             isTimeUpdatesStopped = true
             showJumpToNowButton()
             time.timeInMillis += 86400000
             updateTime()
+        }
+        backButton.setOnLongClickListener {
+            isTimeUpdatesStopped = true
+            showJumpToNowButton()
+            time.set(Calendar.MONTH, time.get(Calendar.MONTH) - 1)
+            updateTime()
+            true
+        }
+        forwardButton.setOnLongClickListener {
+            isTimeUpdatesStopped = true
+            showJumpToNowButton()
+            time.set(Calendar.MONTH, time.get(Calendar.MONTH) + 1)
+            updateTime()
+            true
         }
         jumpToNowButton = findViewById(R.id.jumpToNowButton)
         jumpToNowButton.setOnClickListener {
