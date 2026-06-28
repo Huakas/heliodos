@@ -29,7 +29,7 @@
 
     <PreferenceCategory android:title="@string/pref_category_general">
         <SwitchPreferenceCompat
-            android:defaultValue="false"
+            android:defaultValue="true"
             android:key="show_solstices"
             android:title="@string/pref_show_solstices" />
 

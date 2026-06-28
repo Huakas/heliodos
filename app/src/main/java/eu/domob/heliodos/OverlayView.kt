@@ -161,7 +161,7 @@ class OverlayView @JvmOverloads constructor(
         }
 
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        val showSolstices = prefs.getBoolean("show_solstices", false)
+        val showSolstices = prefs.getBoolean("show_solstices", true)
 
         if (showSolstices) {
             val solstices = sunPosition?.getSolstices(referenceTime)
