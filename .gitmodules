@@ -1,3 +1,6 @@
 [submodule "astronomy"]
 	path = astronomy
 	url = https://github.com/domob1812/astronomy
+[submodule "colorpicker"]
+	path = colorpicker
+	url = https://github.com/martin-stone/hsv-alpha-color-picker-android

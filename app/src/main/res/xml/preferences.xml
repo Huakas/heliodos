@@ -42,4 +42,34 @@
             android:title="@string/pref_manual_time" />
     </androidx.preference.PreferenceCategory>
 
+    <androidx.preference.PreferenceCategory android:title="@string/pref_category_paths">
+        <eu.domob.heliodos.ColorSwitchPreference
+            android:defaultValue="true"
+            android:key="show_solstice_high"
+            android:title="@string/pref_show_solstice_high"
+            app:colorKey="color_solstice_high"
+            app:defaultColor="#FF0000FF" />
+
+        <eu.domob.heliodos.ColorSwitchPreference
+            android:defaultValue="true"
+            android:key="show_solstice_low"
+            android:title="@string/pref_show_solstice_low"
+            app:colorKey="color_solstice_low"
+            app:defaultColor="#FFFF0000" />
+
+        <eu.domob.heliodos.ColorSwitchPreference
+            android:defaultValue="true"
+            android:key="show_equinox"
+            android:title="@string/pref_show_equinox"
+            app:colorKey="color_equinox"
+            app:defaultColor="#FF00FF00" />
+
+        <eu.domob.heliodos.ColorSwitchPreference
+            android:defaultValue="true"
+            android:key="show_sun_current"
+            android:title="@string/pref_show_sun_current"
+            app:colorKey="color_sun_current"
+            app:defaultColor="#FFFFFF00" />
+    </androidx.preference.PreferenceCategory>
+
 </androidx.preference.PreferenceScreen>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ColorSwitchPreference">
+        <attr name="colorKey" format="string" />
+        <attr name="defaultColor" format="color|integer" />
+    </declare-styleable>
+</resources>

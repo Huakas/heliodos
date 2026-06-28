@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
+import androidx.preference.PreferenceManager
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -23,11 +24,9 @@ class OverlayView @JvmOverloads constructor(
     private var referenceTime: Long = 0
     private var observerLatitude: Double = 0.0
 
-    private val paintYellow = Paint().apply {
-        color = Color.YELLOW
-        style = Paint.Style.FILL
-        isAntiAlias = true
-    }
+    private var prefsLoaded = false
+    private val pathEnabled = mutableMapOf<String, Boolean>()
+    private val pathColors = mutableMapOf<String, Int>()
 
     private val paintText = Paint().apply {
         color = Color.WHITE
@@ -104,6 +103,23 @@ class OverlayView @JvmOverloads constructor(
         invalidate()
     }
 
+    fun reloadPreferences() {
+        reloadPreferencesInternal()
+        invalidate()
+    }
+
+    private fun reloadPreferencesInternal() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        pathEnabled["solstice_high"] = prefs.getBoolean("show_solstice_high", true)
+        pathEnabled["solstice_low"] = prefs.getBoolean("show_solstice_low", true)
+        pathEnabled["equinox"] = prefs.getBoolean("show_equinox", true)
+        pathEnabled["sun_current"] = prefs.getBoolean("show_sun_current", true)
+        pathColors["solstice_high"] = prefs.getInt("color_solstice_high", Color.BLUE)
+        pathColors["solstice_low"] = prefs.getInt("color_solstice_low", Color.RED)
+        pathColors["equinox"] = prefs.getInt("color_equinox", Color.GREEN)
+        pathColors["sun_current"] = prefs.getInt("color_sun_current", Color.YELLOW)
+    }
+
     private fun project(azimuth: Double, altitude: Double): Pair<Float, Float>? {
         val r = cos(altitude)
         val worldX = (sin(azimuth) * r).toFloat()
@@ -113,13 +129,10 @@ class OverlayView @JvmOverloads constructor(
         val camProjection = cameraFeedView?.projection ?: return null
         val R = rotationMatrix ?: return null
 
-        // R maps device coords to world coords, so we use its transpose to go world -> device
-        // Device coords: X=right, Y=up, Z=out of screen
         val deviceX = R[0] * worldX + R[3] * worldY + R[6] * worldZ
         val deviceY = R[1] * worldX + R[4] * worldY + R[7] * worldZ
         val deviceZ = R[2] * worldX + R[5] * worldY + R[8] * worldZ
 
-        // Camera looks out the back of the phone, with X=right, Y=down, Z=forward
         val cameraX = deviceX
         val cameraY = -deviceY
         val cameraZ = -deviceZ
@@ -131,16 +144,20 @@ class OverlayView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        if (!prefsLoaded) {
+            reloadPreferencesInternal()
+            prefsLoaded = true
+        }
+
         if (sunPosition == null) {
             val text = "Waiting for device location..."
             val cx = width / 2f
             val cy = height / 2f
-            
+
             val fontMetrics = paintText.fontMetrics
             val textHeight = fontMetrics.bottom - fontMetrics.top
             val textOffset = textHeight / 2 - fontMetrics.bottom
-            
-            // Draw background rectangle for better visibility
+
             val textWidth = paintText.measureText(text)
             val padding = 20f
             canvas.drawRect(
@@ -150,35 +167,53 @@ class OverlayView @JvmOverloads constructor(
                 cy + textHeight / 2 + padding,
                 paintBackground
             )
-            
+
             canvas.drawText(text, cx, cy + textOffset, paintText)
             return
         }
 
         val solstices = sunPosition?.getSolstices(referenceTime)
         if (solstices != null) {
-            val juneColor: Int
-            val decColor: Int
             if (observerLatitude >= 0) {
-                juneColor = Color.BLUE
-                decColor = Color.RED
+                if (pathEnabled["solstice_high"] == true) {
+                    drawSunPath(canvas, solstices.june, 10f,
+                        pathColors["solstice_high"] ?: Color.BLUE)
+                }
+                if (pathEnabled["solstice_low"] == true) {
+                    drawSunPath(canvas, solstices.december, 10f,
+                        pathColors["solstice_low"] ?: Color.RED)
+                }
             } else {
-                juneColor = Color.RED
-                decColor = Color.BLUE
+                if (pathEnabled["solstice_high"] == true) {
+                    drawSunPath(canvas, solstices.december, 10f,
+                        pathColors["solstice_high"] ?: Color.BLUE)
+                }
+                if (pathEnabled["solstice_low"] == true) {
+                    drawSunPath(canvas, solstices.june, 10f,
+                        pathColors["solstice_low"] ?: Color.RED)
+                }
             }
-            drawSunPath(canvas, solstices.june, 10f, juneColor)
-            drawSunPath(canvas, solstices.december, 10f, decColor)
         }
 
-        sunPosition?.getMarchEquinox(referenceTime)?.let {
-            drawSunPath(canvas, it, 10f, Color.GREEN)
+        if (pathEnabled["equinox"] == true) {
+            sunPosition?.getMarchEquinox(referenceTime)?.let {
+                drawSunPath(canvas, it, 10f, pathColors["equinox"] ?: Color.GREEN)
+            }
         }
 
-        drawSunPath(canvas, referenceTime, 3f, Color.YELLOW)
+        if (pathEnabled["sun_current"] == true) {
+            val currentColor = pathColors["sun_current"] ?: Color.YELLOW
+            drawSunPath(canvas, referenceTime, 3f, currentColor)
 
-        val sunPos = sunPosition?.getSunPositionMagnetic(referenceTime) ?: return
-        project(sunPos.azimuth, sunPos.altitude)?.let {
-            canvas.drawCircle(it.first, it.second, 50f, paintYellow)
+            val sunPos = sunPosition?.getSunPositionMagnetic(referenceTime) ?: return
+            project(sunPos.azimuth, sunPos.altitude)?.let {
+                val paint = Paint().apply {
+                    color = currentColor
+                    style = Paint.Style.FILL
+                    isAntiAlias = true
+                }
+                canvas.drawCircle(it.first, it.second, 50f, paint)
+            }
         }
     }
 }

@@ -1,0 +1,2 @@
+- Individual paths can be toggled on and off in settings
+- The colours for the paths can be configured in settings
