@@ -32,6 +32,10 @@
             android:defaultValue="false"
             android:key="show_solstices"
             android:title="@string/pref_show_solstices" />
+
+        <Preference
+            android:key="show_about"
+            android:title="@string/about_title" />
     </PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>

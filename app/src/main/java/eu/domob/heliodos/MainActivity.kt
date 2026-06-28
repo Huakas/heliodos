@@ -112,10 +112,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-
-        cameraFeedView.onSingleTap = {
-            showAboutDialog()
-        }
     }
 
     private fun timeToSlider(): Float {
@@ -123,27 +119,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         timeOfDay += time.get(Calendar.MINUTE) * 60
         timeOfDay += time.get(Calendar.SECOND)
         return timeOfDay / 86400f
-    }
-
-    private fun showAboutDialog() {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_about, null)
-        
-        val tvVersion = view.findViewById<TextView>(R.id.tvVersion)
-        tvVersion.text = getString(R.string.about_version_format, BuildConfig.VERSION_NAME)
-        
-        val tvGitHub = view.findViewById<TextView>(R.id.tvGitHub)
-        tvGitHub.setOnClickListener {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.github_link)))
-            startActivity(intent)
-        }
-
-        MaterialAlertDialogBuilder(this)
-            .setView(view)
-            .setPositiveButton(android.R.string.ok, null)
-            .setNeutralButton(R.string.action_settings) { _, _ ->
-                startActivity(Intent(this, SettingsActivity::class.java))
-            }
-            .show()
     }
 
     private fun showDatePicker() {

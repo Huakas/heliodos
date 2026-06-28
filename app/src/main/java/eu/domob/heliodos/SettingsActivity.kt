@@ -1,11 +1,11 @@
 package eu.domob.heliodos
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.InputType
-import android.text.format.DateFormat
+import android.view.LayoutInflater
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -15,7 +15,8 @@ import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
-import java.util.Calendar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import androidx.core.net.toUri
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -42,6 +43,11 @@ class SettingsActivity : AppCompatActivity() {
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.preferences, rootKey)
+
+            findPreference<Preference>("show_about")?.onPreferenceClickListener = Preference.OnPreferenceClickListener {
+                showAboutDialog()
+                true
+            }
 
             setupCoordinateInput("manual_latitude", -90.0, 90.0, R.string.error_invalid_latitude)
             setupCoordinateInput("manual_longitude", -180.0, 180.0, R.string.error_invalid_longitude)
@@ -95,6 +101,24 @@ class SettingsActivity : AppCompatActivity() {
             findPreference<EditTextPreference>("manual_latitude")?.isEnabled = !useLocation
             findPreference<EditTextPreference>("manual_longitude")?.isEnabled = !useLocation
             findPreference<EditTextPreference>("manual_altitude")?.isEnabled = !useLocation
+        }
+
+        private fun showAboutDialog() {
+            val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_about, null)
+
+            val tvVersion = view.findViewById<TextView>(R.id.tvVersion)
+            tvVersion.text = getString(R.string.about_version_format, BuildConfig.VERSION_NAME)
+
+            val tvGitHub = view.findViewById<TextView>(R.id.tvGitHub)
+            tvGitHub.setOnClickListener {
+                val intent = Intent(Intent.ACTION_VIEW, getString(R.string.github_link).toUri())
+                startActivity(intent)
+            }
+
+            MaterialAlertDialogBuilder(requireContext())
+                .setView(view)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
         }
     }
 }
