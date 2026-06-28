@@ -70,6 +70,13 @@
             android:title="@string/pref_show_sun_current"
             app:colorKey="color_sun_current"
             app:defaultColor="#FFFFFF00" />
+
+        <eu.domob.heliodos.ColorSwitchPreference
+            android:defaultValue="false"
+            android:key="show_moon_current"
+            android:title="@string/pref_show_moon_current"
+            app:colorKey="color_moon_current"
+            app:defaultColor="#FFFFFFFF" />
     </androidx.preference.PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>
