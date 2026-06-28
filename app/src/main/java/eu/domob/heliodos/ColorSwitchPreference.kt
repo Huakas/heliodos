@@ -5,10 +5,10 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.util.AttributeSet
 import android.view.View
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.rarepebble.colorpicker.ColorPickerView
 
 class ColorSwitchPreference @JvmOverloads constructor(
@@ -67,11 +67,11 @@ class ColorSwitchPreference @JvmOverloads constructor(
 
     private fun showColorPicker() {
         val picker = ColorPickerView(context)
-        picker.setColor(getPersistedColor())
+        picker.color = getPersistedColor()
         picker.showAlpha(false)
         picker.showHex(false)
 
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(context)
             .setView(picker)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val color = picker.color
