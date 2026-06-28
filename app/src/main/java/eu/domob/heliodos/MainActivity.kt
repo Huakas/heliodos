@@ -196,6 +196,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
         }
         
+        overlayView.reloadPreferences()
         checkAndRequestPermissions()
     }
 

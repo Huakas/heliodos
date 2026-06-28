@@ -16,6 +16,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "Heliodos"
 include ':app'
+include ':colorpicker'
+project(':colorpicker').projectDir = new File(rootDir, 'colorpicker/colorpicker')
 
 includeBuild('astronomy/source/kotlin') {
     dependencySubstitution {
