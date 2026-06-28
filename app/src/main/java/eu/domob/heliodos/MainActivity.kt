@@ -172,10 +172,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
 
-        if (missingPermissions.indexOf(Manifest.permission.CAMERA) != -1) {
-            cameraFeedView.visibility = View.GONE
-        }
-
         if (missingPermissions.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, missingPermissions.toTypedArray(), PERMISSION_REQUEST_CODE)
         } else {
