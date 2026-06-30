@@ -9,6 +9,7 @@ import android.view.View
 import androidx.preference.PreferenceManager
 import io.github.cosinekitty.astronomy.Body
 import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -52,7 +53,7 @@ class OverlayView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
-    private fun drawBodyPath(canvas: Canvas, bp: BodyPosition, time: Long, thickness: Float, color: Int) {
+    private fun drawBodyPath(canvas: Canvas, bp: BodyPosition, time: Long, thickness: Float, color: Int, currentSunPosition: BodyPosition.AzimuthAltitude? = null) {
         val riseSet = bp.getRiseSet(time)
 
         val startTime: Long
@@ -84,15 +85,71 @@ class OverlayView @JvmOverloads constructor(
             project(pos.azimuth, pos.altitude)
         }
 
+        val sunScreenPoint = if (currentSunPosition != null) project(currentSunPosition.azimuth, currentSunPosition.altitude) else null
+        val sunBlankRadius = 80f
+
         if (isLoop) {
             points[points.lastIndex] = points[0]
+        }
+
+        var isFirstPointDrawn = false
+        var lastPointDrawn: Pair<Float, Float>? = null
+        val roundedCornerPaint = Paint().apply {
+            this.color = color
+            style = Paint.Style.FILL
+            isAntiAlias = true
         }
 
         for (i in 0 until points.size - 1) {
             val p1 = points[i]
             val p2 = points[i + 1]
+
+            if (!isFirstPointDrawn && p1 != null) {
+                isFirstPointDrawn = true
+
+                if (sunScreenPoint != null) {
+                    val isP1Overlap = (p1.first - sunScreenPoint.first).pow(2) + (p1.second - sunScreenPoint.second).pow(2) < sunBlankRadius.pow(2)
+                    if (!isP1Overlap) {
+                        canvas.drawCircle(p1.first, p1.second, thickness/2, roundedCornerPaint)
+                    }
+                } else {
+                    canvas.drawCircle(p1.first, p1.second, thickness/2, roundedCornerPaint)
+                }
+            }
+            if (p2 != null) lastPointDrawn = p2
+            else if (p1 != null) lastPointDrawn = p1
+
             if (p1 != null && p2 != null) {
-                canvas.drawLine(p1.first, p1.second, p2.first, p2.second, paint)
+                if (sunScreenPoint != null) {
+                    val isP1Overlap = (p1.first - sunScreenPoint.first).pow(2) + (p1.second - sunScreenPoint.second).pow(2) < sunBlankRadius.pow(2)
+                    val isP2Overlap = (p2.first - sunScreenPoint.first).pow(2) + (p2.second - sunScreenPoint.second).pow(2) < sunBlankRadius.pow(2)
+
+                    if (isP1Overlap && !isP2Overlap) {
+                        val intersection = findIntersection(p1, p2, sunScreenPoint, sunBlankRadius)
+                        canvas.drawLine(intersection.first, intersection.second, p2.first, p2.second, paint)
+                        canvas.drawCircle(intersection.first, intersection.second, thickness/2, roundedCornerPaint)
+                    } else if (!isP1Overlap && isP2Overlap) {
+                        val intersection = findIntersection(p1, p2, sunScreenPoint, sunBlankRadius)
+                        canvas.drawLine(p1.first, p1.second, intersection.first, intersection.second, paint)
+                        canvas.drawCircle(intersection.first, intersection.second, thickness/2, roundedCornerPaint)
+                    } else if (isP1Overlap) continue
+                    else {
+                        canvas.drawLine(p1.first, p1.second, p2.first, p2.second, paint)
+                    }
+                } else {
+                    canvas.drawLine(p1.first, p1.second, p2.first, p2.second, paint)
+                }
+            }
+        }
+
+        if (lastPointDrawn != null) {
+            if (sunScreenPoint != null) {
+                val isP2Overlap = (lastPointDrawn.first - sunScreenPoint.first).pow(2) + (lastPointDrawn.second - sunScreenPoint.second).pow(2) < sunBlankRadius.pow(2)
+                if (!isP2Overlap) {
+                    canvas.drawCircle(lastPointDrawn.first, lastPointDrawn.second, thickness/2, roundedCornerPaint)
+                }
+            } else {
+                canvas.drawCircle(lastPointDrawn.first, lastPointDrawn.second, thickness/2, roundedCornerPaint)
             }
         }
     }
@@ -163,6 +220,28 @@ class OverlayView @JvmOverloads constructor(
             canvas.drawText(labelText, 0f, textOffsetY, paintLabel)
 
             canvas.restore()
+        }
+    }
+
+    fun findIntersection(p1: Pair<Float, Float>, p2: Pair<Float, Float>, c1: Pair<Float, Float>, r: Float): Pair<Float, Float> {
+        val dx = p2.first - p1.first
+        val dy = p2.second - p1.second
+        val fx = p1.first - c1.first
+        val fy = p1.second - c1.second
+
+        val a = dx * dx + dy * dy
+        val b = 2.0f * (fx * dx + fy * dy)
+        val c = fx * fx + fy * fy - r * r
+
+        val sqrtDiscriminant = sqrt(b * b - 4 * a * c)
+
+        val t1 = (-b + sqrtDiscriminant) / (2 * a)
+        val t2 = (-b - sqrtDiscriminant) / (2 * a)
+
+        return if (t1 in 0.0f..1.0f) {
+            Pair(p1.first + t1 * dx, p1.second + t1 * dy)
+        } else {
+            Pair(p1.first + t2 * dx, p1.second + t2 * dy)
         }
     }
 
@@ -292,11 +371,11 @@ class OverlayView @JvmOverloads constructor(
 
         if (pathEnabled["sun_current"] == true) {
             val currentColor = pathColors["sun_current"] ?: Color.YELLOW
-            drawBodyPath(canvas, sun, referenceTime, 3f, currentColor)
             if (pathEnabled["ticks"] == true) {
                 drawHourTicks(canvas, sun, referenceTime, currentColor)
             }
             val sunPos = sun.getPositionMagnetic(referenceTime)
+            drawBodyPath(canvas, sun, referenceTime, 15f, currentColor, sunPos)
             project(sunPos.azimuth, sunPos.altitude)?.let {
                 val paint = Paint().apply {
                     color = currentColor
@@ -310,11 +389,11 @@ class OverlayView @JvmOverloads constructor(
         if (pathEnabled["moon_current"] == true) {
             bodyPositionMoon?.let { moon ->
                 val moonColor = pathColors["moon_current"] ?: Color.WHITE
-                drawBodyPath(canvas, moon, referenceTime, 3f, moonColor)
                 if (pathEnabled["ticks"] == true) {
                     drawHourTicks(canvas, moon, referenceTime, moonColor)
                 }
                 val moonPos = moon.getPositionMagnetic(referenceTime)
+                drawBodyPath(canvas, moon, referenceTime, 15f, moonColor, moonPos)
                 project(moonPos.azimuth, moonPos.altitude)?.let {
                     val paint = Paint().apply {
                         color = moonColor
