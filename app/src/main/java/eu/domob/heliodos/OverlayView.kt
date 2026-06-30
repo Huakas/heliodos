@@ -206,6 +206,8 @@ class OverlayView @JvmOverloads constructor(
         pathColors["equinox"] = prefs.getInt("color_equinox", Color.GREEN)
         pathColors["sun_current"] = prefs.getInt("color_sun_current", Color.YELLOW)
         pathColors["moon_current"] = prefs.getInt("color_moon_current", Color.WHITE)
+
+        pathEnabled["ticks"] = prefs.getBoolean("show_ticks", true)
     }
 
     private fun project(azimuth: Double, altitude: Double): Pair<Float, Float>? {
@@ -291,7 +293,9 @@ class OverlayView @JvmOverloads constructor(
         if (pathEnabled["sun_current"] == true) {
             val currentColor = pathColors["sun_current"] ?: Color.YELLOW
             drawBodyPath(canvas, sun, referenceTime, 3f, currentColor)
-            drawHourTicks(canvas, sun, referenceTime, currentColor)
+            if (pathEnabled["ticks"] == true) {
+                drawHourTicks(canvas, sun, referenceTime, currentColor)
+            }
             val sunPos = sun.getPositionMagnetic(referenceTime)
             project(sunPos.azimuth, sunPos.altitude)?.let {
                 val paint = Paint().apply {
@@ -307,7 +311,9 @@ class OverlayView @JvmOverloads constructor(
             bodyPositionMoon?.let { moon ->
                 val moonColor = pathColors["moon_current"] ?: Color.WHITE
                 drawBodyPath(canvas, moon, referenceTime, 3f, moonColor)
-                drawHourTicks(canvas, moon, referenceTime, moonColor)
+                if (pathEnabled["ticks"] == true) {
+                    drawHourTicks(canvas, moon, referenceTime, moonColor)
+                }
                 val moonPos = moon.getPositionMagnetic(referenceTime)
                 project(moonPos.azimuth, moonPos.altitude)?.let {
                     val paint = Paint().apply {

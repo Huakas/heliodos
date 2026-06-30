@@ -66,6 +66,11 @@
 
     <PreferenceCategory android:title="@string/pref_category_general">
 
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="show_ticks"
+            android:title="@string/pref_show_ticks"/>
+
         <Preference
             android:key="show_about"
             android:title="@string/about_title" />
