@@ -2,6 +2,11 @@ package eu.domob.heliodos
 
 import android.hardware.GeomagneticField
 import io.github.cosinekitty.astronomy.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
+
+private const val POLAR_HOUR_RANGE_HOURS = 10
 
 class BodyPosition(
     private val latitude: Double,
@@ -12,6 +17,7 @@ class BodyPosition(
     data class AzimuthAltitude(val azimuth: Double, val altitude: Double)
     data class RiseSet(val rise: Long, val set: Long)
     data class Solstices(val june: Long, val december: Long)
+    data class HourTickInfo(val millis: Long, val localHour: Int)
 
     val observer = Observer(latitude, longitude, altitude)
 
@@ -88,6 +94,39 @@ class BodyPosition(
             rise.toMillisecondsSince1970(),
             set.toMillisecondsSince1970()
         )
+    }
+
+    fun getFullHourTimestamps(timeMillis: Long): List<HourTickInfo> {
+        val riseSet = getRiseSet(timeMillis)
+        if (riseSet != null) {
+            return getFullHoursInRange(riseSet.rise, riseSet.set)
+        }
+        val pos = getPosition(timeMillis)
+        if (pos.altitude < 0) {
+            return emptyList()
+        }
+        val halfRangeMs = POLAR_HOUR_RANGE_HOURS * 3600_000L
+        return getFullHoursInRange(timeMillis - halfRangeMs, timeMillis + halfRangeMs)
+    }
+
+    private fun getFullHoursInRange(startMs: Long, endMs: Long): List<HourTickInfo> {
+        val zone = ZoneId.systemDefault()
+        val startDt = Instant.ofEpochMilli(startMs).atZone(zone)
+        val firstHour = if (startDt.minute == 0 && startDt.second == 0 && startDt.nano == 0) {
+            startDt
+        } else {
+            startDt.truncatedTo(ChronoUnit.HOURS).plusHours(1)
+        }
+        val result = mutableListOf<HourTickInfo>()
+        var current = firstHour
+        while (current.toInstant().toEpochMilli() <= endMs) {
+            result.add(HourTickInfo(
+                current.toInstant().toEpochMilli(),
+                current.hour
+            ))
+            current = current.plusHours(1)
+        }
+        return result
     }
 
     fun getSolstices(timeMillis: Long): Solstices {
